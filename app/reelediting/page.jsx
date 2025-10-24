@@ -65,6 +65,7 @@ export default function VideoPlayer() {
             console.log("downloaded")
             const newcount = freetiercount + 1
             setfreetiercount(newcount)
+            console.log(newcount)
             await axios.put('/api/freetier', {freetiercount: newcount, email})
         }
     }

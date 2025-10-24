@@ -7,7 +7,7 @@ import { getStores } from "@lemonsqueezy/lemonsqueezy.js";
 
 
 export const useReelContext = () =>{
-  return useContext(ReelContext)
+  return useContext(ReelContext)                                      
 }
 
 const ReelContextProvider = (props) => {

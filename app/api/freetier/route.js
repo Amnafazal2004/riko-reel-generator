@@ -52,6 +52,7 @@ export async function GET() {
    await connectDB();
    try {
       const subscription = await SubscriptionModel.find({});
+      //the find method returns an array so we need to access it like that
       return NextResponse.json({ subscription })
    }
    catch (error) {

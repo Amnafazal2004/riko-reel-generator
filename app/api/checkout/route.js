@@ -8,7 +8,7 @@ import { createCheckout } from '@lemonsqueezy/lemonsqueezy.js';
 
 export async function POST(request) {
   const body = await request.json();
-  const { variantid, email, plan, subscriptionId, subscriptionstatus, endat } = body
+  const { variantid, email, plan, subscriptionId, subscriptionstatus, endat, freetiercount } = body
 
 
   // Checkout session create karo
@@ -35,6 +35,7 @@ export async function POST(request) {
         subscriptionId: subscriptionId,
         subscriptionstatus: subscriptionstatus,
         endat: endat,
+        freetiercount: freetiercount
       }
         
        },

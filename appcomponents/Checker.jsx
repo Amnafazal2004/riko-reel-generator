@@ -16,11 +16,12 @@ const Checker = () => {
   const [subscriptionstatus, setsubscriptionstatus] = useState("free");
   const [subscriptionId, setsubscriptionId] = useState("");
   const [endat, setendat] = useState("");
-  const [freetierpopup, setfreetierpopup] = useState(false)
-  const [freetierended, setfreetierended] = useState(false)
-  const [proplanactive, setproplanactive] = useState(false)
-  const [updateproplan, setupdateproplan] = useState(false)
-  const [freetier, setfreetier] = useState(false)
+  const [freetierpopup, setfreetierpopup] = useState(false);
+  const [freetierended, setfreetierended] = useState(false);
+  const [proplanactive, setproplanactive] = useState(false);
+  const [updateproplan, setupdateproplan] = useState(false);
+  const [cancelproplan, setcancelproplan] = useState(false);
+  const [freetier, setfreetier] = useState(false);
 
   const [thevideos, setthevideos] = useState([]);
   const {
@@ -30,19 +31,20 @@ const Checker = () => {
     setvideoUrls,
     setaudiourl,
     email,
-    freetiercount
+    freetiercount,
+    setfreetiercount,
   } = useReelContext();
   const router = useRouter();
   const [audio, setaudio] = useState();
 
-  let uploadResults,
-    getSubscription,
-    openaireply;
+  let uploadResults, getSubscription, openaireply;
 
   const fetchsubsdata = async () => {
     const { data } = await axios.get("/api/freetier");
     console.log("got it");
+    //get subscription is an array because it the find method sends an array back
     getSubscription = data.subscription;
+    console.log("getsub", getSubscription);
     console.log(data.subscription);
   };
 
@@ -101,8 +103,6 @@ const Checker = () => {
     }
   };
 
-
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -114,32 +114,48 @@ const Checker = () => {
     }
 
     await fetchsubsdata();
-    if((getSubscription.subscriptionstatus==="free" && getSubscription.freetiercount<5)){
-      console.log("free")
-      setfreetiercount(getSubscription.freetiercount)
-      setfreetier(true) 
+    if (
+      getSubscription[0].subscriptionstatus === "free" &&
+      getSubscription[0].freetiercount < 3
+    ) {
+      console.log("free");
+      console.log(getSubscription[0].freetiercount);
+      setfreetiercount(getSubscription[0].freetiercount);
+      setfreetier(true);
+    } else if (
+      getSubscription[0].subscriptionstatus === "free" &&
+      getSubscription[0].freetiercount === 3
+    ) {
+      console.log("free ended");
+      setfreetierended(true);
+      return;
     }
-    else if(getSubscription.subscriptionstatus==="free" && getSubscription.freetiercount===5){
-      console.log("free ended")
-       setfreetierended(true)
-       return 
+    else if (
+      getSubscription[0].subscriptionstatus === "active" ||
+      getSubscription[0].subscriptionstatus === "on_trial"
+    ) {
+      console.log("pro");
+      setproplanactive(true);
     }
-    else if(getSubscription.subscriptionstatus==="active" || getSubscription.subscriptionstatus==="on_trial" ){
-      console.log("pro")
-      setproplanactive(true)
-      
+    else if (
+      getSubscription[0].subscriptionstatus === "expired" &&
+      getSubscription[0].freetiercount === 3
+    ) {
+      console.log("pro ended");
+      setupdateproplan(true);
+      return;
+    } else if (
+      getSubscription[0].subscriptionstatus === "expired" &&
+      getSubscription[0].freetiercount < 3
+    ) {
+      console.log("free started again");
+      setfreetiercount(getSubscription[0].freetiercount);
+      setfreetier(true);
+    } else if (getSubscription[0].subscriptionstatus === "cancelled") {
+      setcancelproplan(true);
+      setendat(getSubscription[0].endat);
     }
-    else if((getSubscription.subscriptionstatus==="expired" && getSubscription.freetiercount===5)){
-      console.log("pro ended")
-      setupdateproplan(true)
-      return
-    }
-    else if((getSubscription.subscriptionstatus==="expired" && getSubscription.freetiercount<5)){
-      console.log("free started again")
-      setfreetiercount(getSubscription.freetiercount)
-      setfreetier(true) 
-    }
-  //  else if(getSubscription.subscriptionstatus==="cancelled")
+    //jb cancel aye to bs reminder de do k apki subscription is time per band hojayegi
 
     //uploading videos on cloudinary
     uploadResults = await Promise.all(
@@ -159,25 +175,24 @@ const Checker = () => {
 
     setvideoUrls(uploadResults);
 
- 
-      try {
-        const formData = new FormData();
-        formData.append("prompt", prompt);
-        formData.append("userid", userid);
-        formData.append("audio", audio);
+    try {
+      const formData = new FormData();
+      formData.append("prompt", prompt);
+      formData.append("userid", userid);
+      formData.append("audio", audio);
 
-        const { data } = await axios.post("/api/input", formData);
-        console.log("here");
-        if (data.success) {
-          toast(" prompt added");
-          console.log(data.audio);
-          setaudiourl(data.audio);
-          await openaihandler().catch((err) => console.error("AI Error:", err));
-        }
-      } catch (error) {
-        toast("Not uploaded");
+      const { data } = await axios.post("/api/input", formData);
+      console.log("here");
+      if (data.success) {
+        toast(" prompt added");
+        console.log(data.audio);
+        setaudiourl(data.audio);
+        await openaihandler().catch((err) => console.error("AI Error:", err));
       }
-   // }
+    } catch (error) {
+      toast("Not uploaded");
+    }
+    // }
   };
 
   //FormData for files, JSON for URLs/text!
@@ -200,7 +215,7 @@ const Checker = () => {
       subscriptionId,
       subscriptionstatus,
       freetiercount,
-      endat
+      endat,
     });
     if (data.success) {
       console.log("bro");
@@ -208,41 +223,37 @@ const Checker = () => {
     }
   };
 
- 
-  // const handlerCustomerPortal = async () => {
-  //    const { data } = await axios.post("/api/customerportalsession", {
-  //     variantid,
-  //     email,
-  //   });
-  //   if (data.success) {
-  //     console.log("bro");
-  //     window.location.href = data.url; //for external redirect
-  //   }
+  //will work only when it is live
+  const handlerCustomerPortal = () => {
+    window.location.href = " https://reelgenerator.lemonsqueezy.com/billing";
+  };
 
-  // }
-
-    const handlefreetier = async () => {
-      setfreetier(true)
-      console.log("in free tier")
-      const {data} = await axios.post('/api/freetier', {
-        email,
-        subscriptionId,
-        subscriptionstatus,
-        endat
-      })
-      if(data.success){
-        console.log(data.message)
-      }
-
-    };
+  const handlefreetier = async () => {
+    setfreetier(true);
+    console.log("in free tier");
+    const { data } = await axios.post("/api/freetier", {
+      email,
+      subscriptionId,
+      subscriptionstatus,
+      endat,
+      freetiercount,
+    });
+    if (data.success) {
+      console.log(data.message);
+    }
+  };
 
   return (
     <div>
       <Button onClick={() => setshowlogin(true)}>Profile</Button>
-      <Button onClick={()=> setfreetierpopup(true)}>Free Trial</Button>
-      { freetierpopup? <Button onClick={handlefreetier} >Start Free trial Now</Button>: <></>}
+      <Button onClick={() => setfreetierpopup(true)}>Free Trial</Button>
+      {freetierpopup ? (
+        <Button onClick={handlefreetier}>Start Free trial Now</Button>
+      ) : (
+        <></>
+      )}
       <Button onClick={handlePurchase}>Pro Plan</Button>
-      {/* <Button onClick={handlerCustomerPortal}>Customer Portal</Button> */}
+      <Button onClick={handlerCustomerPortal}>Customer Portal</Button>
       <h1 className="font-bold text-center text-4xl">Reels Generator</h1>
       <form onSubmit={submitHandler}>
         <h2>Prompts</h2>
@@ -309,10 +320,10 @@ const Checker = () => {
             />
           )}
         </div>
-       
+
         <Button type="submit" size="lg" className="rounded-4xl">
           Click me
-        </Button> 
+        </Button>
       </form>
       <div></div>
     </div>
